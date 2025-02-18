@@ -2,7 +2,7 @@ mod model;
 mod view;
 mod utils;
 mod rotor;
-mod plugboard;
+// mod plugboard;
 
 use std::env;
 use utils::{load_constants, load_ascii_art, load_ascii_mapping};
