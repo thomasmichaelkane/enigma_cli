@@ -1,41 +1,38 @@
-mod model;
-mod view;
-mod utils;
-mod rotor;
-mod plugboard;
+use clap::Parser;
 
-use std::env;
+use enigma::cli::Cli;
+use enigma::config::Config;
+use enigma::model::EnigmaModel;
+use enigma::view::EnigmaView;
+use enigma::rotor::Rotor;
+use enigma::plugboard::Plugboard;
 
-use view::EnigmaView;
-use model::EnigmaModel;
-use rotor::Rotor;
-use plugboard::Plugboard;
-
-use utils::{
+use enigma::utils::{
     load_constants, 
     load_ascii_art, 
     load_ascii_mapping_top, 
-    load_ascii_mapping_plugboard};
+    load_ascii_mapping_plugboard
+};
 
 fn main() {
 
     // Parse args
-    let args: Vec<String> = env::args().collect();
-    let debug_mode = args.contains(&"-d".to_string());
+    let cli = Cli::parse();
+    let config = Config::new(&cli);
 
     // Load ASCII art
     let frame = load_ascii_art()
         .expect("Failed to load ASCII art");
-    
-    // Load ASCII character mapping for the top view
-    let ascii_mapping = load_ascii_mapping_top();
-
-    // Load ASCII character mapping for the plugboard view
-    let plugboard_mapping = load_ascii_mapping_plugboard();
 
     // Load constants
     let constants = load_constants()
         .expect("Failed to load YAML");
+    
+    // Load ASCII character mapping for the top view
+    let ascii_mapping_top = load_ascii_mapping_top();
+
+    // Load ASCII character mapping for the plugboard view
+    let ascii_mapping_plugboard = load_ascii_mapping_plugboard();
 
     // Create rotors
     let rotors: Vec<Rotor> = constants["rotor_permutations"]
@@ -59,9 +56,9 @@ fn main() {
     // Create view
     let view = EnigmaView::new(
         frame,
-        ascii_mapping,
-        plugboard_mapping, 
-        debug_mode);
+        ascii_mapping_top,
+        ascii_mapping_plugboard,
+    );
     
     // Create model
     let mut enigma = EnigmaModel::new(
@@ -69,7 +66,7 @@ fn main() {
         rotors, 
         reflector,
         plugboard,
-        debug_mode); 
+        config); 
 
     // Wire plugboard
     enigma.wire_plugboard();

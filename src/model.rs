@@ -4,6 +4,7 @@ use crossterm::event::{self, KeyCode, KeyEventKind};
 use event::{poll, read};
 use event::Event;
 
+use crate::config::Config;
 use crate::rotor::Rotor;
 use crate::plugboard::Plugboard;
 use crate::view::EnigmaView;
@@ -14,7 +15,8 @@ pub struct EnigmaModel {
   rotors: Vec<Rotor>,
   reflector: Option<Rotor>,
   plugboard: Plugboard,
-  debug: bool,
+  message: String,
+  config: Config,
 }
 
 impl EnigmaModel {
@@ -23,20 +25,21 @@ impl EnigmaModel {
              rotors: Vec<Rotor>,
              reflector: Option<Rotor>,
              plugboard: Plugboard,
-             debug: bool) -> Self {
+             config: Config) -> Self {
     EnigmaModel {
       view,
       rotors,
       reflector,
       plugboard,
-      debug,
+      message: String::new(),
+      config,
     }
   }
 
   pub fn start_typing(&mut self) {
     // Enter typing mode
 
-    self.view.start("top");
+    if self.config.is_display()  {self.view.start("top")};
     
     loop {
       if let Ok(true) = poll(Duration::from_millis(100)) {
@@ -48,7 +51,7 @@ impl EnigmaModel {
           
           match key_event.code {
             KeyCode::Esc => break,
-            KeyCode::Enter => self.save_message(),
+            KeyCode::Enter => self.save_and_wipe_message(),
             KeyCode::Char(c) => self.handle_character(c),
             _ => {}
           }
@@ -56,13 +59,13 @@ impl EnigmaModel {
       }
     }
 
-    self.view.end();
+    if self.config.is_display()  {self.view.end()};
   }
 
   pub fn wire_plugboard(&mut self) {
     // Enter pluboard wiring mode
 
-    self.view.start("front");
+    if self.config.is_display()  {self.view.start("front")};
     let mut initial_plug: Option<char> = None;
     
     loop {
@@ -95,13 +98,13 @@ impl EnigmaModel {
       }
     }
 
-    self.view.end();
+    if self.config.is_display()  {self.view.end()};
   }
 
   fn handle_plugboard_enter(&mut self, initial_plug: &mut Option<char>) {
     // Handle Enter KeyCode during wiring phase
     if let Some(c) = *initial_plug {
-      self.view.remove_plug(c);
+      if self.config.is_display()  {self.view.remove_plug(c)};
     }
   }
 
@@ -113,7 +116,7 @@ impl EnigmaModel {
       return;
     }
 
-    if self.debug {
+    if self.config.is_debug() {
       println!("received key press: {}", c);
     }
 
@@ -131,25 +134,24 @@ impl EnigmaModel {
   fn start_new_connection(&mut self, c: char, initial_plug: &mut Option<char>) {
     // Start a new plugboard connection and display
     *initial_plug = Some(c);
-    self.view.add_initial_plug(c);
+    if self.config.is_display()  {self.view.add_initial_plug(c)};
   }
 
   fn complete_connection(&mut self, initial_char: char, current_char: char, initial_plug: &mut Option<char>) {
     // Complete new plugboard connection and display
-    self.view.add_final_plug(current_char, self.plugboard.get_num_connections());
+    if self.config.is_display()  {self.view.add_final_plug(current_char, self.plugboard.get_num_connections())};
+    if self.config.is_debug() {println!("Added plug connection: {}-{}", initial_char, current_char)};
+    
     self.plugboard.add_connection(initial_char, current_char);
     *initial_plug = None;
-    
-    if self.debug {
-      println!("Added plug connection: {}-{}", initial_char, current_char);
-    }
+  
   }
 
   fn handle_character(&mut self, c: char) {
     // Handle characters during typing phase
     let c = c.to_ascii_uppercase();
     
-    if self.debug {
+    if self.config.is_debug() {
       println!("received key press: {}", c);
     }
     
@@ -172,42 +174,44 @@ impl EnigmaModel {
   // Update the enigma model on keypress
 
     // Update the keyboard view at character C
-    self.view.update_keyboard(c.to_ascii_lowercase());
-    if self.debug {print!("(IN) {} ", c)};
+    if self.config.is_display()  {self.view.update_keyboard(c.to_ascii_lowercase())};
+    if self.config.is_debug() {print!("(IN) {} ", c)};
 
     // Pass C through the plugboard
     c = self.plugboard.permutation(c);
-    if self.debug {print!("-> [PLUG] -> {} ", c)};
+    if self.config.is_debug() {print!("-> [PLUG] -> {} ", c)};
 
     // Pass C through the rotors in the forward direction
     for i in (0..self.rotors.len()).rev() {
       c = self.rotors[i].forward_permutation(c);
-      if self.debug {print!("-> [R{}] -> {} ", i, c)};
+      if self.config.is_debug() {print!("-> [R{}] -> {} ", i, c)};
     }
 
     // Apply the reflector to C if present
     if let Some(reflector) = &self.reflector {
       c = reflector.forward_permutation(c);
-      if self.debug {print!("-> [REFLECT] -> {} ", c)};
+      if self.config.is_debug() {print!("-> [REFLECT] -> {} ", c)};
     }
 
     // Pass C through the rotors in the reverse direction
     for i in 0..self.rotors.len() as usize {
       c = self.rotors[i].reverse_permutation(c);
-      if self.debug {print!("-> [R{}] -> {} ", i, c)};
+      if self.config.is_debug() {print!("-> [R{}] -> {} ", i, c)};
     }
 
     // Pass C through the plugboard
     c = self.plugboard.permutation(c);
-    if self.debug {print!("-> [PLUG] -> {} (OUT)", c)};
+    if self.config.is_debug() {print!("-> [PLUG] -> {} (OUT)", c)};
 
-    if self.debug {
+    if self.config.is_debug() {
       println!();
       println!("------");
     }
 
     // Update the lamp view at the new character C
-    self.view.update_keyboard(c.to_ascii_uppercase());
+    self.add_to_message(c.to_ascii_uppercase());
+    if !self.config.is_secret() {self.view.update_message(self.message.clone())};
+    if self.config.is_display()  {self.view.update_keyboard(c.to_ascii_uppercase())};
 
   }
 
@@ -232,9 +236,9 @@ impl EnigmaModel {
     let full_rev: bool = self.rotors[rotor_num].advance();
     let next_char = self.get_rotor_letter(rotor_num);
     let rotor_char = char::from_digit((rotor_num + 1) as u32, 10).unwrap();
-    self.view.rotate_rotor(rotor_char, curr_char, next_char);
+    if self.config.is_display()  {self.view.rotate_rotor(rotor_char, curr_char, next_char)};
     
-    if self.debug {
+    if self.config.is_debug() {
       println!("Rotor {} turned to: {}", rotor_num, next_char);
       println!("------");
     };
@@ -242,11 +246,21 @@ impl EnigmaModel {
     return full_rev
   }
 
-  fn save_message(&mut self) {
+  fn add_to_message(&mut self, c: char) {
+    // Add C to the message and go to new line if necessary
+    if (self.message.len() % 54) == 0 {
+      self.message.push_str("\n");
+    }
+    self.message.push(c);
+  }
+
+  fn save_and_wipe_message(&mut self) {
     // Save formated encrypted message to msg.txt
-    let message = self.view.get_and_wipe_message();
-    let formatted_message = self.format_message(message);
+    let formatted_message = self.format_message(self.message.clone());
     fs::write("print/msg.txt", formatted_message).expect("Unable to write file");
+    self.message.clear();
+    self.view.update_message(self.message.clone());
+    self.view.flip();
   }
 
   fn format_message(&mut self, message: String) -> String {

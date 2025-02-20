@@ -13,39 +13,36 @@ use crossterm::{
 
 pub struct EnigmaView {
   frame: Vec<Vec<(char, Option<Color>)>>,
-  ascii_mapping: HashMap<char, (usize, usize)>,
-  plugboard_mapping: HashMap<char, (usize, usize)>,
+  ascii_mapping_top: HashMap<char, (usize, usize)>,
+  ascii_mapping_plugboard: HashMap<char, (usize, usize)>,
   previous_key_press: Option<char>,
   previous_lamp: Option<char>,
   previous_wire: Option<char>,
   stdout: io::Stdout,
-  debug: bool,
   key_color: Color,
   lamp_color: Color,
+  front_view: bool,
   message: String,
-  front_view: bool
 }
 
 impl EnigmaView {
   pub fn new(
     frame: Vec<Vec<(char, Option<Color>)>>,
-    ascii_mapping: HashMap<char, (usize, usize)>,
-    plugboard_mapping: HashMap<char, (usize, usize)>, 
-    debug: bool
+    ascii_mapping_top: HashMap<char, (usize, usize)>,
+    ascii_mapping_plugboard: HashMap<char, (usize, usize)>, 
   ) -> Self {
     EnigmaView { 
       frame,
-      ascii_mapping,
-      plugboard_mapping,
+      ascii_mapping_top,
+      ascii_mapping_plugboard,
       previous_key_press: None,
       previous_lamp: None,
       previous_wire: None,
       stdout: io::stdout(),
-      debug,
       key_color: Color::Grey,
       lamp_color: Color::Yellow,
-      message: String::new(),
       front_view: false,
+      message: String::new(),
              }
   }
 
@@ -71,7 +68,7 @@ impl EnigmaView {
 
   pub fn add_initial_plug(&mut self, c: char) {
     // Mark initial plug position
-    if let Some((x, y)) = self.plugboard_mapping.get(&c) {
+    if let Some((x, y)) = self.ascii_mapping_plugboard.get(&c) {
       self.frame[*x][*y].0 = '+';
       self.frame[*x][*y].1 = Some(Color::Yellow);
       self.previous_wire = Some(c);
@@ -85,14 +82,14 @@ impl EnigmaView {
     let num_char = char::from_digit(num_connection as u32, 10).unwrap();
 
     // Final plug
-    if let Some((x, y)) = self.plugboard_mapping.get(&c) {
+    if let Some((x, y)) = self.ascii_mapping_plugboard.get(&c) {
       self.frame[*x][*y].0 = num_char;
       self.frame[*x][*y].1 = Some(Color::DarkGrey);
     }
 
     // Initial plug
     if let Some(pc) = self.previous_wire.take() {
-      if let Some((px, py)) = self.plugboard_mapping.get(&pc) {
+      if let Some((px, py)) = self.ascii_mapping_plugboard.get(&pc) {
         self.frame[*px][*py].0 = num_char;
         self.frame[*px][*py].1 = Some(Color::DarkGrey);
       }
@@ -103,7 +100,7 @@ impl EnigmaView {
 
   pub fn remove_plug(&mut self, c: char) {
     // Reset styling at the plug for specififec charcater
-    if let Some((x, y)) = self.plugboard_mapping.get(&c) {
+    if let Some((x, y)) = self.ascii_mapping_plugboard.get(&c) {
       self.frame[*x][*y].0 = ':';
       self.frame[*x][*y].1 = None;
     }
@@ -112,11 +109,9 @@ impl EnigmaView {
   
   pub fn flip(&mut self) {
     // Clear screen, move cursor to top-left, print new frame
-    if !self.debug{
-      execute!(self.stdout, terminal::Clear(ClearType::All)).unwrap();
-      execute!(self.stdout, cursor::MoveTo(0, 0)).unwrap();
-      self.print_colored_frame();
-    }
+    execute!(self.stdout, terminal::Clear(ClearType::All)).unwrap();
+    execute!(self.stdout, cursor::MoveTo(0, 0)).unwrap();
+    self.print_colored_frame();
   }
 
   pub fn update_keyboard(&mut self, c: char) {
@@ -128,13 +123,13 @@ impl EnigmaView {
     let previous = if c.is_ascii_uppercase() { &mut self.previous_lamp } else { &mut self.previous_key_press };
 
     // Set the new key color
-    if let Some((x, y)) = self.ascii_mapping.get(&c) {
+    if let Some((x, y)) = self.ascii_mapping_top.get(&c) {
       self.frame[*x][*y].1 = Some(color);
     }
 
     // Reset the previous key color
     if let Some(pc) = previous.take() {
-      if let Some((px, py)) = self.ascii_mapping.get(&pc) {
+      if let Some((px, py)) = self.ascii_mapping_top.get(&pc) {
         self.frame[*px][*py].1 = None;
       }
     }
@@ -142,33 +137,16 @@ impl EnigmaView {
     // Store the newly pressed key
     *previous = Some(c);
 
-    // If updating the lamp, flip the screen and store C in the message
+    // If updating the lamp, flip the screen
     if c.is_ascii_uppercase() {
-      self.add_to_message(c);
       self.flip();
     };
 
   }
 
-  fn add_to_message(&mut self, c: char) {
-    // Add C to the message and go to new line if necessary
-    if (self.message.len() % 54) == 0 {
-      self.message.push_str("\n");
-    }
-    self.message.push(c);
-  }
-
-  pub fn get_and_wipe_message(&mut self) -> String {
-    // Return the current message, clear it, and flip the screen
-    let message = self.message.clone();
-    self.message.clear();
-    self.flip();
-    message
-  }
-
   pub fn rotate_rotor(&mut self, rotor_c: char, curr_c: char, next_c: char) {
     // Update the corresponding rotor display with roll animation
-    let (y, x) = self.ascii_mapping[&rotor_c];
+    let (y, x) = self.ascii_mapping_top[&rotor_c];
     self.rotor_animate(curr_c, ' ', ' ', x, y);
     self.rotor_animate(' ', ' ', next_c, x, y);
     self.rotor_animate(' ', next_c, ' ', x, y);
@@ -187,6 +165,11 @@ impl EnigmaView {
   fn lag(&self) {
     // Short lag for animation
     sleep(Duration::from_millis(75));
+  }
+
+  pub fn update_message(&mut self, message: String) {
+    // Update the message at the bottom of the screen
+    self.message = message;
   }
 
   fn print_colored_frame(&mut self) {
