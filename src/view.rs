@@ -14,44 +14,101 @@ use crossterm::{
 pub struct EnigmaView {
   frame: Vec<Vec<(char, Option<Color>)>>,
   ascii_mapping: HashMap<char, (usize, usize)>,
+  plugboard_mapping: HashMap<char, (usize, usize)>,
   previous_key_press: Option<char>,
   previous_lamp: Option<char>,
+  previous_wire: Option<char>,
   stdout: io::Stdout,
   debug: bool,
   key_color: Color,
   lamp_color: Color,
   message: String,
+  front_view: bool
 }
 
 impl EnigmaView {
-  pub fn new(frame: Vec<Vec<(char, Option<Color>)>>, 
-             ascii_mapping: HashMap<char, (usize, usize)>, 
-             debug: bool) -> Self {
-    EnigmaView { frame,
-                 ascii_mapping,
-                 previous_key_press: None,
-                 previous_lamp: None,
-                 stdout: io::stdout(),
-                 debug,
-                 key_color: Color::Grey,
-                 lamp_color: Color::Yellow,
-                 message: String::new(),
+  pub fn new(
+    frame: Vec<Vec<(char, Option<Color>)>>,
+    ascii_mapping: HashMap<char, (usize, usize)>,
+    plugboard_mapping: HashMap<char, (usize, usize)>, 
+    debug: bool
+  ) -> Self {
+    EnigmaView { 
+      frame,
+      ascii_mapping,
+      plugboard_mapping,
+      previous_key_press: None,
+      previous_lamp: None,
+      previous_wire: None,
+      stdout: io::stdout(),
+      debug,
+      key_color: Color::Grey,
+      lamp_color: Color::Yellow,
+      message: String::new(),
+      front_view: false,
              }
   }
 
-  pub fn start(&mut self) {
-    // Enable raw mode and show enigma view
+  pub fn start(&mut self, perspective: &str) {
+    // Start the view for the chosen perspective
     terminal::enable_raw_mode().unwrap();
+    
+    match perspective {
+      "top" => self.front_view = false,
+      "front" => self.front_view = true,
+      _ => {}
+    }
+
     self.flip();
   }
   
   pub fn end(&mut self) {
-    // Disable raw mode and wipe enigma view
+    // End view for the current perspective
     execute!(self.stdout, terminal::Clear(ClearType::All)).unwrap();
     execute!(self.stdout, cursor::MoveTo(0, 0)).unwrap();
     terminal::disable_raw_mode().unwrap();
   }
 
+  pub fn add_initial_plug(&mut self, c: char) {
+    // Mark initial plug position
+    if let Some((x, y)) = self.plugboard_mapping.get(&c) {
+      self.frame[*x][*y].0 = '+';
+      self.frame[*x][*y].1 = Some(Color::Yellow);
+      self.previous_wire = Some(c);
+    }
+
+    self.flip()
+  }
+
+  pub fn add_final_plug(&mut self, c: char, num_connection: usize) {
+    // Complete the connection by labelling initial and final plugs
+    let num_char = char::from_digit(num_connection as u32, 10).unwrap();
+
+    // Final plug
+    if let Some((x, y)) = self.plugboard_mapping.get(&c) {
+      self.frame[*x][*y].0 = num_char;
+      self.frame[*x][*y].1 = Some(Color::DarkGrey);
+    }
+
+    // Initial plug
+    if let Some(pc) = self.previous_wire.take() {
+      if let Some((px, py)) = self.plugboard_mapping.get(&pc) {
+        self.frame[*px][*py].0 = num_char;
+        self.frame[*px][*py].1 = Some(Color::DarkGrey);
+      }
+    }
+
+    self.flip()
+  }
+
+  pub fn remove_plug(&mut self, c: char) {
+    // Reset styling at the plug for specififec charcater
+    if let Some((x, y)) = self.plugboard_mapping.get(&c) {
+      self.frame[*x][*y].0 = ':';
+      self.frame[*x][*y].1 = None;
+    }
+    self.flip()
+  }
   
   pub fn flip(&mut self) {
     // Clear screen, move cursor to top-left, print new frame
@@ -72,14 +129,14 @@ impl EnigmaView {
 
     // Set the new key color
     if let Some((x, y)) = self.ascii_mapping.get(&c) {
-        self.frame[*x][*y].1 = Some(color);
+      self.frame[*x][*y].1 = Some(color);
     }
 
     // Reset the previous key color
     if let Some(pc) = previous.take() {
-        if let Some((px, py)) = self.ascii_mapping.get(&pc) {
-            self.frame[*px][*py].1 = None;
-        }
+      if let Some((px, py)) = self.ascii_mapping.get(&pc) {
+        self.frame[*px][*py].1 = None;
+      }
     }
 
     // Store the newly pressed key
@@ -135,11 +192,13 @@ impl EnigmaView {
   fn print_colored_frame(&mut self) {
     // Print the current frame with colour highlighting
 
+    let frame = if self.front_view { &self.frame[16..] } else { &self.frame[..17] };
+    
     // Create output buffer
     let mut output_buffer = String::new();
 
     // Iterate over the frame and apply color if necessary
-    for row in &self.frame {
+    for row in frame {
       for &c in row {
         match c.1 {
           Some(color) => {

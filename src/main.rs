@@ -2,14 +2,20 @@ mod model;
 mod view;
 mod utils;
 mod rotor;
-// mod plugboard;
+mod plugboard;
 
 use std::env;
-use utils::{load_constants, load_ascii_art, load_ascii_mapping};
+
 use view::EnigmaView;
 use model::EnigmaModel;
 use rotor::Rotor;
-// use plugboard::Plugboard;
+use plugboard::Plugboard;
+
+use utils::{
+    load_constants, 
+    load_ascii_art, 
+    load_ascii_mapping_top, 
+    load_ascii_mapping_plugboard};
 
 fn main() {
 
@@ -21,8 +27,11 @@ fn main() {
     let frame = load_ascii_art()
         .expect("Failed to load ASCII art");
     
-    // Load ASCII mapping
-    let ascii_mapping = load_ascii_mapping();
+    // Load ASCII character mapping for the top view
+    let ascii_mapping = load_ascii_mapping_top();
+
+    // Load ASCII character mapping for the plugboard view
+    let plugboard_mapping = load_ascii_mapping_plugboard();
 
     // Load constants
     let constants = load_constants()
@@ -43,14 +52,29 @@ fn main() {
     let reflector: Option<Rotor> = Some(Rotor::new(constants["reflector_permutations"]
         .as_str()
         .expect("Expected string").to_string()));
+
+    // Create plugboard
+    let plugboard: Plugboard = Plugboard::new();
     
     // Create view
-    let view = EnigmaView::new(frame, ascii_mapping, debug_mode);
+    let view = EnigmaView::new(
+        frame,
+        ascii_mapping,
+        plugboard_mapping, 
+        debug_mode);
     
     // Create model
-    let mut enigma = EnigmaModel::new(view, rotors, reflector, debug_mode); 
+    let mut enigma = EnigmaModel::new(
+        view, 
+        rotors, 
+        reflector,
+        plugboard,
+        debug_mode); 
+
+    // Wire plugboard
+    enigma.wire_plugboard();
 
     // Run the enigma machine
-    enigma.run();
+    enigma.start_typing();
 
 }

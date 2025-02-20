@@ -5,6 +5,14 @@ use std::collections::HashMap;
 use yaml_rust::{Yaml, YamlLoader};
 use crossterm::style::Color;
 
+pub const ALPHABET: [char; 26] = [
+    'A', 'B', 'C', 'D', 'E', 'F', 
+    'G', 'H', 'I', 'J', 'K', 'L',
+    'M', 'N', 'O', 'P', 'Q', 'R',
+    'S', 'T', 'U', 'V', 'W', 'X',
+    'Y', 'Z'
+];
+
 pub fn load_constants() -> Result<Yaml, Box<dyn Error>> {
     // Load the constants.yaml file and parse it into a YAML structure
 
@@ -18,7 +26,7 @@ pub fn load_constants() -> Result<Yaml, Box<dyn Error>> {
 pub fn load_ascii_art() -> Result<Vec<Vec<(char, Option<Color>)>>, Box<dyn Error>> {
     // Load ascii art from "ascii.txt" file
 
-    let ascii_path = Path::new("ascii.txt");
+    let ascii_path = Path::new("assets/ascii.txt");
     
     let ascii_art: Vec<Vec<(char, Option<Color>)>> = fs::read_to_string(ascii_path)?
         .lines()
@@ -31,12 +39,13 @@ pub fn load_ascii_art() -> Result<Vec<Vec<(char, Option<Color>)>>, Box<dyn Error
     Ok(ascii_art)
 }
 
-pub fn load_ascii_mapping() -> HashMap<char, (usize, usize)> {
+pub fn load_ascii_mapping_top() -> HashMap<char, (usize, usize)> {
     // Create map of ASCII characters that need to be located
     
     // Rotor and keyboard origin coordinates
     let (r0x, r0y): (usize, usize) = (5, 14);
     let (k0x, k0y): (usize, usize) = (9, 10);
+    
     HashMap::from([
 
         // Rotor relative locations
@@ -99,5 +108,42 @@ pub fn load_ascii_mapping() -> HashMap<char, (usize, usize)> {
         ('n', (6 + k0x, 24 + k0y)),
         ('m', (6 + k0x, 28 + k0y)),
         ('l', (6 + k0x, 32 + k0y)),
+    ])
+}
+
+pub fn load_ascii_mapping_plugboard() -> HashMap<char, (usize, usize)> {
+    // Create map of ASCII characters that need to be located
+    
+    // Plugboard origin coordinates
+    let (p0x, p0y): (usize, usize) = (18, 10);
+    HashMap::from([
+
+        // Plugboard relative locations
+        ('Q', (0 + p0x, 0 + p0y)),
+        ('W', (0 + p0x, 4 + p0y)),
+        ('E', (0 + p0x, 8 + p0y)),
+        ('R', (0 + p0x, 12 + p0y)),
+        ('T', (0 + p0x, 16 + p0y)),
+        ('Z', (0 + p0x, 20 + p0y)),
+        ('U', (0 + p0x, 24 + p0y)),
+        ('I', (0 + p0x, 28 + p0y)),
+        ('O', (0 + p0x, 32 + p0y)),
+        ('A', (2 + p0x, 2 + p0y)),
+        ('S', (2 + p0x, 6 + p0y)),
+        ('D', (2 + p0x, 10 + p0y)),
+        ('F', (2 + p0x, 14 + p0y)),
+        ('G', (2 + p0x, 18 + p0y)),
+        ('H', (2 + p0x, 22 + p0y)),
+        ('J', (2 + p0x, 26 + p0y)),
+        ('K', (2 + p0x, 30 + p0y)),
+        ('P', (4 + p0x, 0 + p0y)),
+        ('Y', (4 + p0x, 4 + p0y)),
+        ('X', (4 + p0x, 8 + p0y)),
+        ('C', (4 + p0x, 12 + p0y)),
+        ('V', (4 + p0x, 16 + p0y)),
+        ('B', (4 + p0x, 20 + p0y)),
+        ('N', (4 + p0x, 24 + p0y)),
+        ('M', (4 + p0x, 28 + p0y)),
+        ('L', (4 + p0x, 32 + p0y)),
     ])
 }

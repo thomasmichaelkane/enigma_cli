@@ -1,19 +1,20 @@
+use crate::utils::ALPHABET;
+
 #[derive(Debug)]
 pub struct Rotor {
-  // Define the state of the Enigma machine
-  permutation: Vec<char>,
+
+  permutation: [char; 26],
   offset: usize,
   length: usize,
-  alphabet: Vec<char>,
 }
 
 impl Rotor {
+
   pub fn new(perm_str: String) -> Self {
     Rotor {
-      permutation: perm_str.chars().collect::<Vec<char>>(),
+      permutation: perm_str.chars().collect::<Vec<char>>().try_into().unwrap(),
       offset: 0,
       length: perm_str.len(),
-      alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ".chars().collect::<Vec<char>>(),
     }
   }
   
@@ -32,7 +33,7 @@ impl Rotor {
     // Apply the rotors permutation in the forward direction
     self.apply_permutation(
       input_char, 
-      &self.alphabet, 
+      &ALPHABET, 
       &self.permutation)
   }
 
@@ -41,14 +42,14 @@ impl Rotor {
     self.apply_permutation(
       input_char, 
       &self.permutation, 
-      &self.alphabet)
+      &ALPHABET)
   }
 
-  pub fn apply_permutation(&self, input_char: char, input_seq: &Vec<char>, output_seq: &Vec<char>) -> char {
+  pub fn apply_permutation(&self, input_char: char, input_seq: &[char; 26], output_seq: &[char; 26]) -> char {
     // Apply the permutation
 
     // Permutation logic
-    let in_index = self.alphabet.iter().position(|l| l == &input_char).unwrap();
+    let in_index = ALPHABET.iter().position(|l| l == &input_char).unwrap();
     let perm_index = (in_index + self.offset) % self.length;
     let perm_char = output_seq[perm_index];
     let out_index = input_seq.iter().position(|l| l == &perm_char).unwrap();
@@ -60,7 +61,7 @@ impl Rotor {
     }
 
     // Output character
-    let out_char = self.alphabet[final_index as usize];
+    let out_char = ALPHABET[final_index as usize];
     return out_char;
   }
 }
