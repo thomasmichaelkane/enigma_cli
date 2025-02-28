@@ -1,13 +1,22 @@
 use clap::Parser;
 
-use enigma::cli::Cli;
-use enigma::config::Config;
-use enigma::model::EnigmaModel;
-use enigma::view::EnigmaView;
-use enigma::rotor::Rotor;
-use enigma::plugboard::Plugboard;
+pub mod cli;
+pub mod config;
+pub mod model;
+pub mod view;
+pub mod utils;
+pub mod rotor;
+pub mod plugboard;
+pub mod message;
 
-use enigma::utils::{
+use cli::Cli;
+use config::Config;
+use model::EnigmaModel;
+use view::EnigmaView;
+use rotor::Rotor;
+use plugboard::Plugboard;
+
+use utils::{
     load_constants, 
     load_ascii_art, 
     load_ascii_mapping_top, 

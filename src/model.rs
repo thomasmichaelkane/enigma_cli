@@ -1,4 +1,3 @@
-use std::fs;
 use std::time::Duration;
 use crossterm::event::{self, KeyCode, KeyEventKind};
 use event::{poll, read};
@@ -8,6 +7,7 @@ use crate::config::Config;
 use crate::rotor::Rotor;
 use crate::plugboard::Plugboard;
 use crate::view::EnigmaView;
+use crate::message::Message;
 use crate::utils::ALPHABET;
 
 pub struct EnigmaModel {
@@ -15,7 +15,7 @@ pub struct EnigmaModel {
   rotors: Vec<Rotor>,
   reflector: Option<Rotor>,
   plugboard: Plugboard,
-  message: String,
+  message: Message,
   config: Config,
 }
 
@@ -31,7 +31,7 @@ impl EnigmaModel {
       rotors,
       reflector,
       plugboard,
-      message: String::new(),
+      message: Message::new(),
       config,
     }
   }
@@ -113,7 +113,11 @@ impl EnigmaModel {
     let c = c.to_ascii_uppercase();
     
     if self.is_already_plugged(c, *initial_plug) {
-      return;
+      return
+    }
+
+    if !ALPHABET.contains(&c) {
+      return
     }
 
     if self.config.is_debug() {
@@ -209,8 +213,8 @@ impl EnigmaModel {
     }
 
     // Update the lamp view at the new character C
-    self.add_to_message(c.to_ascii_uppercase());
-    if !self.config.is_secret() {self.view.update_message(self.message.clone())};
+    self.message.add(c.to_ascii_uppercase());
+    if !self.config.is_secret() {self.view.update_message_buffer(self.message.read())};
     if self.config.is_display()  {self.view.update_keyboard(c.to_ascii_uppercase())};
 
   }
@@ -246,40 +250,12 @@ impl EnigmaModel {
     return full_rev
   }
 
-  fn add_to_message(&mut self, c: char) {
-    // Add C to the message and go to new line if necessary
-    if (self.message.len() % 54) == 0 {
-      self.message.push_str("\n");
-    }
-    self.message.push(c);
-  }
-
   fn save_and_wipe_message(&mut self) {
     // Save formated encrypted message to msg.txt
-    let formatted_message = self.format_message(self.message.clone());
-    fs::write("print/msg.txt", formatted_message).expect("Unable to write file");
+    self.message.print();
     self.message.clear();
-    self.view.update_message(self.message.clone());
+    self.view.wipe_message_buffer();
     self.view.flip();
-  }
-
-  fn format_message(&mut self, message: String) -> String {
-    // Format the message into enigma style
-    message
-      .chars()
-      .filter(|&c| c != '\n')
-      .enumerate()
-      .flat_map(|(i, c)| {
-        let mut chunk = vec![c];
-
-        if (i + 1) % 40 == 0 {
-          chunk.push('\n');
-        } else if (i + 1) % 5 == 0 {
-          chunk.push(' ');
-        }
-        chunk
-      })
-      .collect()
   }
 
 }

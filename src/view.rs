@@ -22,7 +22,7 @@ pub struct EnigmaView {
   key_color: Color,
   lamp_color: Color,
   front_view: bool,
-  message: String,
+  message_buffer: String,
 }
 
 impl EnigmaView {
@@ -42,7 +42,7 @@ impl EnigmaView {
       key_color: Color::Grey,
       lamp_color: Color::Yellow,
       front_view: false,
-      message: String::new(),
+      message_buffer: String::new(),
              }
   }
 
@@ -167,9 +167,14 @@ impl EnigmaView {
     sleep(Duration::from_millis(75));
   }
 
-  pub fn update_message(&mut self, message: String) {
+  pub fn update_message_buffer(&mut self, message: &str) {
     // Update the message at the bottom of the screen
-    self.message = message;
+    self.message_buffer = String::from(message);
+  }
+
+  pub fn wipe_message_buffer(&mut self) {
+    // Update the message at the bottom of the screen
+    self.message_buffer.clear();
   }
 
   fn print_colored_frame(&mut self) {
@@ -194,12 +199,12 @@ impl EnigmaView {
           }
         }
       }
-      output_buffer.push('\n');
+      output_buffer.push_str("\r\n");
     }
 
     // Add the message at the bottom
-    output_buffer.push('\n');
-    output_buffer.push_str(&self.message);
+    output_buffer.push_str("\r\n");
+    output_buffer.push_str(&self.message_buffer);
 
     // Write everything at once
     write!(self.stdout, "{}", output_buffer).unwrap();
