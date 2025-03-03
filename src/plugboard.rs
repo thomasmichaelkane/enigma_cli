@@ -1,8 +1,10 @@
-use crate::utils::ALPHABET;
+use crate::ALPHABET;
+
+const PERM_LEN: usize = ALPHABET.len();
 
 #[derive(Debug)]
 pub struct Plugboard {
-  connections: [Option<char>; 26],
+  connections: [Option<char>; PERM_LEN],
   num_connections: usize,
 }
 
@@ -10,12 +12,12 @@ impl Plugboard {
   
   pub fn new() -> Self {
     Plugboard {
-      connections: [None; 26],
+      connections: [None; PERM_LEN],
       num_connections: 0,
     }
   }
 
-  pub fn get_connections(&self) -> &[Option<char>; 26] {
+  pub fn get_connections(&self) -> &[Option<char>; PERM_LEN] {
     &self.connections
   }
 
@@ -43,7 +45,7 @@ impl Plugboard {
   }
 
   pub fn reset(&mut self) {
-    self.connections = [None; 26];
+    self.connections = [None; PERM_LEN];
     self.num_connections = 0;
   }
 

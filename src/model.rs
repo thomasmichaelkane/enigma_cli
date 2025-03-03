@@ -8,7 +8,7 @@ use crate::rotor::Rotor;
 use crate::plugboard::Plugboard;
 use crate::view::EnigmaView;
 use crate::message::Message;
-use crate::utils::ALPHABET;
+use crate::{ALPHABET, MAX_PLUGS};
 
 pub struct EnigmaModel {
   view: EnigmaView,
@@ -76,7 +76,7 @@ impl EnigmaModel {
             continue;
           }
 
-          if self.plugboard.get_num_connections() == 10 {
+          if self.plugboard.get_num_connections() == MAX_PLUGS {
             break;
           }
           

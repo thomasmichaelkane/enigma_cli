@@ -5,25 +5,20 @@ use std::collections::HashMap;
 use yaml_rust::{Yaml, YamlLoader};
 use crossterm::style::Color;
 
-pub const ALPHABET: [char; 26] = [
-    'A', 'B', 'C', 'D', 'E', 'F', 
-    'G', 'H', 'I', 'J', 'K', 'L',
-    'M', 'N', 'O', 'P', 'Q', 'R',
-    'S', 'T', 'U', 'V', 'W', 'X',
-    'Y', 'Z'
-];
+use crate::validation::validate_yaml;
 
-pub fn load_constants() -> Result<Yaml, Box<dyn Error>> {
-    // Load the constants.yaml file and parse it into a YAML structure
 
-    let constants_path = Path::new("constants.yaml");
-    let yaml_str = fs::read_to_string(constants_path)?;
+pub fn permutations_yaml() -> Result<Yaml, Box<dyn Error>> {
+    // Load the permutations.yaml file and parse it into a YAML structure
+    let permutations_path = Path::new("permutations.yaml");
+    let yaml_str = fs::read_to_string(permutations_path)?;
     let docs = YamlLoader::load_from_str(&yaml_str)?;
-    
-    docs.into_iter().next().ok_or_else(|| "Empty YAML file".into())
+    let yaml = docs.into_iter().next().ok_or_else(|| Box::<dyn Error>::from("Empty YAML file"))?;
+    validate_yaml(&yaml)?;
+    Ok(yaml)
 }
 
-pub fn load_ascii_art() -> Result<Vec<Vec<(char, Option<Color>)>>, Box<dyn Error>> {
+pub fn ascii_art() -> Result<Vec<Vec<(char, Option<Color>)>>, Box<dyn Error>> {
     // Load ascii art from "ascii.txt" file
 
     let ascii_path = Path::new("assets/ascii.txt");
@@ -39,7 +34,7 @@ pub fn load_ascii_art() -> Result<Vec<Vec<(char, Option<Color>)>>, Box<dyn Error
     Ok(ascii_art)
 }
 
-pub fn load_ascii_mapping_top() -> HashMap<char, (usize, usize)> {
+pub fn ascii_mapping_top() -> HashMap<char, (usize, usize)> {
     // Create map of ASCII characters that need to be located
     
     // Rotor and keyboard origin coordinates
@@ -111,7 +106,7 @@ pub fn load_ascii_mapping_top() -> HashMap<char, (usize, usize)> {
     ])
 }
 
-pub fn load_ascii_mapping_plugboard() -> HashMap<char, (usize, usize)> {
+pub fn ascii_mapping_plugboard() -> HashMap<char, (usize, usize)> {
     // Create map of ASCII characters that need to be located
     
     // Plugboard origin coordinates

@@ -29,6 +29,7 @@ impl Message {
 
   pub fn print(&mut self) {
     self.format();
+    fs::create_dir_all("print").expect("Unable to create print dir");
     fs::write("print/msg.txt", self.formatted.clone()).expect("Unable to write file");
   }
 
