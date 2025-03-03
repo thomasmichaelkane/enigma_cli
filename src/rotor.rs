@@ -22,7 +22,7 @@ impl Rotor {
     Rotor {
       permutation,
       offset: 0,
-      length: perm_str.len(),
+      length: PERM_LEN,
     }
   }
   
@@ -75,10 +75,76 @@ impl Rotor {
     // Wraparound logic for negative values
     let mut final_index = out_index as isize - self.offset as isize;
     if final_index < 0 {
-        final_index += self.length as isize;  // If negative, wrap around
+      final_index += self.length as isize;  // If negative, wrap around
     }
 
     // Return the final character from alphabet
     ALPHABET[final_index as usize]
   }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_advance() {
+    let mut rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
+    assert_eq!(rotor.offset, 0);
+    
+    // Test advancing and getting false (not a full rotation)
+    assert_eq!(rotor.advance(), false);
+    assert_eq!(rotor.offset, 1);
+    
+    // Set to almost wrapped around
+    rotor.offset = 25;
+    
+    // Test advancing and getting true (full rotation)
+    assert_eq!(rotor.advance(), true);
+    assert_eq!(rotor.offset, 0);
+  }
+
+  #[test]
+    fn test_forward_permutation() {
+      let rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
+      assert_eq!(rotor.forward_permutation('A'), 'E');
+      assert_eq!(rotor.forward_permutation('Z'), 'J');
+    }
+
+    #[test]
+    fn test_reverse_permutation() {
+      let rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
+      assert_eq!(rotor.reverse_permutation('K'), 'B');
+      assert_eq!(rotor.reverse_permutation('C'), 'Y');
+    }
+
+    #[test]
+    fn test_rotation_affects_permutation() {
+      let mut rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
+      
+      // At offset 0
+      let initial_mapping = rotor.forward_permutation('A');
+      
+      // Advance the rotor
+      rotor.advance();
+      
+      // At offset 1, the mapping should be different
+      let new_mapping = rotor.forward_permutation('A');
+      assert_ne!(initial_mapping, new_mapping);
+    }
+    
+    #[test]
+    fn test_full_rotation_cycle() {
+      let mut rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
+      let initial_mapping = rotor.forward_permutation('A');
+      
+      // Rotate through a full cycle (26 positions)
+      for _ in 0..26 {
+          rotor.advance();
+      }
+      
+      // After a full rotation, the mapping should be the same
+      let final_mapping = rotor.forward_permutation('A');
+      assert_eq!(initial_mapping, final_mapping);
+    }
 }
