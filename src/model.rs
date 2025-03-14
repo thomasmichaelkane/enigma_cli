@@ -39,7 +39,7 @@ impl EnigmaModel {
   pub fn start_typing(&mut self) {
     // Enter typing mode
 
-    if self.config.is_display()  {self.view.start("top")};
+    if self.config.is_display()  {self.view.start("top"); self.view.flip(self.config.should_show_instructions())};
     
     loop {
       if let Ok(true) = poll(Duration::from_millis(100)) {
@@ -65,7 +65,7 @@ impl EnigmaModel {
   pub fn wire_plugboard(&mut self) {
     // Enter pluboard wiring mode
 
-    if self.config.is_display()  {self.view.start("front")};
+    if self.config.is_display()  {self.view.start("front"); self.view.flip(self.config.should_show_instructions())};
     let mut initial_plug: Option<char> = None;
     
     loop {
@@ -101,10 +101,14 @@ impl EnigmaModel {
     if self.config.is_display()  {self.view.end()};
   }
 
+
   fn handle_plugboard_enter(&mut self, initial_plug: &mut Option<char>) {
     // Handle Enter KeyCode during wiring phase
     if let Some(c) = *initial_plug {
-      if self.config.is_display()  {self.view.remove_plug(c)};
+      if self.config.is_display()  {
+        self.view.remove_plug(c);
+        self.view.flip(self.config.should_show_instructions());
+      };
     }
   }
 
@@ -138,12 +142,12 @@ impl EnigmaModel {
   fn start_new_connection(&mut self, c: char, initial_plug: &mut Option<char>) {
     // Start a new plugboard connection and display
     *initial_plug = Some(c);
-    if self.config.is_display()  {self.view.add_initial_plug(c)};
+    if self.config.is_display()  {self.view.add_initial_plug(c); self.view.flip(self.config.should_show_instructions())};
   }
 
   fn complete_connection(&mut self, initial_char: char, current_char: char, initial_plug: &mut Option<char>) {
     // Complete new plugboard connection and display
-    if self.config.is_display()  {self.view.add_final_plug(current_char, self.plugboard.get_num_connections())};
+    if self.config.is_display()  {self.view.add_final_plug(current_char, self.plugboard.get_num_connections()); self.view.flip(self.config.should_show_instructions())};
     if self.config.is_debug() {println!("Added plug connection: {}-{}", initial_char, current_char)};
     
     self.plugboard.add_connection(initial_char, current_char);
@@ -215,7 +219,7 @@ impl EnigmaModel {
     // Update the lamp view at the new character C
     self.message.add(c.to_ascii_uppercase());
     if !self.config.is_secret() {self.view.update_message_buffer(self.message.read())};
-    if self.config.is_display()  {self.view.update_keyboard(c.to_ascii_uppercase())};
+    if self.config.is_display()  {self.view.update_keyboard(c.to_ascii_uppercase()); self.view.flip(self.config.should_show_instructions())};
 
   }
 
@@ -240,7 +244,16 @@ impl EnigmaModel {
     let full_rev: bool = self.rotors[rotor_num].advance();
     let next_char = self.get_rotor_letter(rotor_num);
     let rotor_char = char::from_digit((rotor_num + 1) as u32, 10).unwrap();
-    if self.config.is_display()  {self.view.rotate_rotor(rotor_char, curr_char, next_char)};
+    
+    if self.config.is_display()  {
+      if self.config.animate() {
+        self.view.rotate_rotor(rotor_char, curr_char, next_char);
+        self.view.flip(self.config.should_show_instructions());
+      } else {
+        self.view.rotate_rotor_fast(rotor_char, next_char);
+        self.view.flip(self.config.should_show_instructions());
+      }
+    };
     
     if self.config.is_debug() {
       println!("Rotor {} turned to: {}", rotor_num, next_char);
@@ -255,7 +268,7 @@ impl EnigmaModel {
     self.message.print();
     self.message.clear();
     self.view.wipe_message_buffer();
-    self.view.flip();
+    self.view.flip(self.config.should_show_instructions());
   }
 
 }

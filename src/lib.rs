@@ -26,6 +26,11 @@ pub const ALPHABET: [char; 26] = [
     'Y', 'Z'
 ];
 
+pub const INSTRUCTIONS: [&str; 2] = [
+  "(ESC) => Exit | (CHAR) => Add Plug | (ENTER) => FINISH\r\n\r\n",
+  "(ESC) => Exit | (CHAR) => Type | (ENTER) => Save/Wipe Message\r\n\r\n",
+];
+
 pub fn run (config: Config)-> Result<(), Box<dyn Error>> {
   
   // Load ASCII art

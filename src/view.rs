@@ -11,6 +11,8 @@ use crossterm::{
   cursor::{self},
 };
 
+use crate::INSTRUCTIONS;
+
 pub struct EnigmaView {
   frame: Vec<Vec<(char, Option<Color>)>>,
   ascii_mapping_top: HashMap<char, (usize, usize)>,
@@ -55,8 +57,6 @@ impl EnigmaView {
       "front" => self.front_view = true,
       _ => {}
     }
-
-    self.flip();
   }
   
   pub fn end(&mut self) {
@@ -73,8 +73,6 @@ impl EnigmaView {
       self.frame[*x][*y].1 = Some(Color::Yellow);
       self.previous_wire = Some(c);
     }
-
-    self.flip()
   }
 
   pub fn add_final_plug(&mut self, c: char, num_connection: usize) {
@@ -94,8 +92,6 @@ impl EnigmaView {
         self.frame[*px][*py].1 = Some(Color::DarkGrey);
       }
     }
-
-    self.flip()
   }
 
   pub fn remove_plug(&mut self, c: char) {
@@ -104,14 +100,13 @@ impl EnigmaView {
       self.frame[*x][*y].0 = ':';
       self.frame[*x][*y].1 = None;
     }
-    self.flip()
   }
   
-  pub fn flip(&mut self) {
+  pub fn flip(&mut self, ins: bool) {
     // Clear screen, move cursor to top-left, print new frame
     execute!(self.stdout, terminal::Clear(ClearType::All)).unwrap();
     execute!(self.stdout, cursor::MoveTo(0, 0)).unwrap();
-    self.print_colored_frame();
+    self.print_colored_frame(ins);
   }
 
   pub fn update_keyboard(&mut self, c: char) {
@@ -137,20 +132,23 @@ impl EnigmaView {
     // Store the newly pressed key
     *previous = Some(c);
 
-    // If updating the lamp, flip the screen
-    if c.is_ascii_uppercase() {
-      self.flip();
-    };
+  }
 
+  pub fn rotate_rotor_fast(&mut self, rotor_c: char, next_c: char) {
+    // Update the corresponding rotor display with roll animation
+    let (y, x) = self.ascii_mapping_top[&rotor_c];
+    self.rotor_animate(' ', next_c, ' ', x, y);
   }
 
   pub fn rotate_rotor(&mut self, rotor_c: char, curr_c: char, next_c: char) {
     // Update the corresponding rotor display with roll animation
     let (y, x) = self.ascii_mapping_top[&rotor_c];
+    self.lag();
     self.rotor_animate(curr_c, ' ', ' ', x, y);
+    self.lag();
     self.rotor_animate(' ', ' ', next_c, x, y);
+    self.lag();
     self.rotor_animate(' ', next_c, ' ', x, y);
-    self.flip();
   }
 
   fn rotor_animate(&mut self, t_char: char, m_char: char, b_char: char, x: usize, y: usize) {
@@ -158,8 +156,6 @@ impl EnigmaView {
     self.frame[y-1][x].0 = t_char;
     self.frame[y][x].0 = m_char;
     self.frame[y+1][x].0 = b_char;
-    self.lag();
-    self.flip();
   }
 
   fn lag(&self) {
@@ -177,15 +173,19 @@ impl EnigmaView {
     self.message_buffer.clear();
   }
 
-  fn print_colored_frame(&mut self) {
+  fn print_colored_frame(&mut self, ins: bool) {
     // Print the current frame with colour highlighting
 
-    let frame = if self.front_view { &self.frame[16..] } else { &self.frame[..17] };
-    
     // Create output buffer
     let mut output_buffer = String::new();
 
+    // Add instructions to the top
+    if ins {
+      output_buffer.push_str(if self.front_view { &INSTRUCTIONS[0] } else { &INSTRUCTIONS[1] });
+    }
+    
     // Iterate over the frame and apply color if necessary
+    let frame = if self.front_view { &self.frame[16..] } else { &self.frame[..17] };
     for row in frame {
       for &c in row {
         match c.1 {

@@ -20,7 +20,7 @@ pub struct Cli {
     #[arg(short = 'i', long = "instruct")]
     pub show_instructions: bool,
 
-    /// Run in fast mode => Supress animations.
-    #[arg(short = 'f', long = "fast")]
-    pub supress_animations: bool,
+    /// Run with animations => Activate animations.
+    #[arg(short = 'a', long = "animate")]
+    pub animate: bool,
 }

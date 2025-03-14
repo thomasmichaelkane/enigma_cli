@@ -4,6 +4,7 @@ pub struct Config {
   debug_mode: bool,
   secret_mode: bool,
   show_instructions: bool,
+  animate: bool,
 }
 
 impl Config {
@@ -12,6 +13,7 @@ impl Config {
       debug_mode: cli.debug_mode,
       secret_mode: cli.secret_mode,
       show_instructions: cli.show_instructions,
+      animate: cli.animate,
     }
   }
 
@@ -29,5 +31,9 @@ impl Config {
 
   pub fn should_show_instructions(&self) -> bool {
     self.show_instructions
+  }
+
+  pub fn animate(&self) -> bool {
+    self.animate
   }
 }

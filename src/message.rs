@@ -15,7 +15,7 @@ impl Message {
 
   pub fn add(&mut self, c: char) {
     // Add C to the message and go to new line if necessary
-    if (self.content.len() % 54) == 0 {self.content.push_str("\n")};
+    if (self.content.len() % 54) == 0 {self.content.push_str("\r\n")};
     self.content.push(c);
   }
   
@@ -38,6 +38,7 @@ impl Message {
     self.formatted = self.content
       .chars()
       .filter(|&c| c != '\n')
+      .filter(|&c| c != '\r')
       .enumerate()
       .flat_map(|(i, c)| {
         let mut chunk = vec![c];
