@@ -36,4 +36,5 @@ impl Config {
   pub fn animate(&self) -> bool {
     self.animate
   }
+  
 }

@@ -4,24 +4,46 @@ const PERM_LEN: usize = ALPHABET.len();
 
 #[derive(Debug)]
 pub struct Rotor {
+  // name: String,
   permutation: [char; PERM_LEN],
   offset: usize,
+  // notches: Vec<usize>,
   length: usize,
 }
 
 impl Rotor {
 
   pub fn new(perm_str: &str) -> Self {
+
+  // pub fn new(name: &str, perm_str: &str, notch_chars: Option<Vec<char>>) -> Self {
+
+    // let name = String::from(name);
     
-    let permutation = perm_str.chars()
+    let permutation: [char; 26] = perm_str.chars()
                                           .map(|c| c.to_ascii_uppercase())
                                           .collect::<Vec<char>>()
                                           .try_into()
                                           .unwrap();
     
+    // let notch_chars: Option<Vec<char>> = Some(vec![permutation[15]]);
+
+    // let notches: Vec<usize> = match notch_chars {
+    //   Some(notch_chars) => notch_chars
+    //     .iter()
+    //     .map(|notch_c| 
+    //       ALPHABET
+    //       .iter()
+    //       .position(|c| c == notch_c)
+    //       .unwrap())
+    //     .collect(),
+    //   None => vec![0],
+    // };
+    
     Rotor {
+      // name,
       permutation,
       offset: 0,
+      // notches,
       length: PERM_LEN,
     }
   }
@@ -34,6 +56,7 @@ impl Rotor {
   pub fn advance(&mut self) -> bool {
     // Move the offset to the next position, wrapping around when at the end
     self.offset = (self.offset + 1) % self.length;
+    // self.notches.iter().any(|notch| notch == &self.offset)
     self.offset == 0
   }
 
@@ -96,7 +119,7 @@ mod tests {
     assert_eq!(rotor.advance(), false);
     assert_eq!(rotor.offset, 1);
     
-    // Set to almost wrapped around
+    // Set to one before notch
     rotor.offset = 25;
     
     // Test advancing and getting true (full rotation)
@@ -106,22 +129,21 @@ mod tests {
 
   #[test]
     fn test_forward_permutation() {
-      let rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
+      let rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");      
       assert_eq!(rotor.forward_permutation('A'), 'E');
       assert_eq!(rotor.forward_permutation('Z'), 'J');
     }
 
     #[test]
     fn test_reverse_permutation() {
-      let rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
+      let rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");      
       assert_eq!(rotor.reverse_permutation('K'), 'B');
       assert_eq!(rotor.reverse_permutation('C'), 'Y');
     }
 
     #[test]
     fn test_rotation_affects_permutation() {
-      let mut rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
-      
+      let mut rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");      
       // At offset 0
       let initial_mapping = rotor.forward_permutation('A');
       
@@ -135,7 +157,7 @@ mod tests {
     
     #[test]
     fn test_full_rotation_cycle() {
-      let mut rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");
+      let mut rotor = Rotor::new("EKMFLGDQVZNTOWYHXUSPAIBRCJ");      
       let initial_mapping = rotor.forward_permutation('A');
       
       // Rotate through a full cycle (26 positions)
